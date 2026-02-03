@@ -8,8 +8,7 @@ import (
 	"os"
 )
 
-// <-chan string is the channel used to pass strings
-// between different goroutines.
+// `chan string` is the channel used to pass strings between different goroutines.
 // <- Arrow is on the left (Receive-Only operator)
 func getLinesReader(f io.ReadCloser) <-chan string { // (ReadCloser is an interface that accept Read() and Close() methods)
 	out := make(chan string, 1)
@@ -29,7 +28,7 @@ func getLinesReader(f io.ReadCloser) <-chan string { // (ReadCloser is an interf
 			if i := bytes.IndexByte(buffer, '\n'); i != -1 {
 				str += string(buffer[:i])
 				buffer = buffer[i+1:]
-				fmt.Printf("read: %s\n", str)
+				out <- str // Send 'str' INTO channel 'out'
 				str = ""
 			}
 			str += string(buffer)
@@ -38,6 +37,10 @@ func getLinesReader(f io.ReadCloser) <-chan string { // (ReadCloser is an interf
 			if err == io.EOF { // End of file reached
 				break
 			}
+			// if len(str) != 0 {
+			// 	out <- str
+			// }
+
 			// fmt.Printf("\nTotal bytes read: %d\n", totalBytesRead)
 		}
 	}()
@@ -49,11 +52,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error opening file: %v", err)
 	}
-	defer func() {
-		if closeErr := file.Close(); closeErr != nil {
-			log.Printf("Error closing file: %v", closeErr)
-		}
-	}() // Invoke the anonymous function
 
-	lines := getLinesReader(f)
+	lines := getLinesReader(file)
+	// 1. New variable,
+	// 2. Look at the data coming out of the channel
+	// 3. Figure out the type automatically, and assign it.
+	for line := range lines {
+		fmt.Printf("read: %s\n", line)
+	}
 }
